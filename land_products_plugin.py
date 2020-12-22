@@ -13,6 +13,9 @@ from qgis.PyQt.QtCore import Qt, QCoreApplication
 
 class Copernicus(QgsProcessingAlgorithm):
 
+    def createInstance(self):
+        return Copernicus()
+
     def initAlgorithm(self, config=None):
         self.services = ['Bare-CoverFraction-layer', 'BuiltUp-CoverFraction-layer', 'Crops-CoverFraction-layer',
                          'DataDensityIndicator', 'Discrete-Classification-map', 'Discrete-Classification-proba',
@@ -110,4 +113,4 @@ class Copernicus(QgsProcessingAlgorithm):
         """
         return "Download Copernicus Land Cover products" \
 
-                return Copernicus()
+        return Copernicus()
