@@ -87,19 +87,21 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
         return self.tr("Example algorithm short description")
 
     def initAlgorithm(self, config=None):
-        # self.services = ['Bare-CoverFraction-layer', 'BuiltUp-CoverFraction-layer', 'Crops-CoverFraction-layer',
-        #                  'DataDensityIndicator', 'Discrete-Classification-map', 'Discrete-Classification-proba',
-        #                  'Forest-Type-layer', 'Grass-CoverFraction-layer', 'MossLichen-CoverFraction-layer',
-        #                  'PermanentWater-CoverFraction-layer', 'SeasonalWater-CoverFraction-layer',
-        #                  'Shrub-CoverFraction-layer', 'Snow-CoverFraction-layer', 'Tree-CoverFraction-layer']
-        # self.yearlist = ['2015', '2016', '2017', '2018', '2019']
+        self.services = ['Bare-CoverFraction-layer', 'BuiltUp-CoverFraction-layer', 'Crops-CoverFraction-layer',
+                         'DataDensityIndicator', 'Discrete-Classification-map', 'Discrete-Classification-proba',
+                         'Forest-Type-layer', 'Grass-CoverFraction-layer', 'MossLichen-CoverFraction-layer',
+                         'PermanentWater-CoverFraction-layer', 'SeasonalWater-CoverFraction-layer',
+                         'Shrub-CoverFraction-layer', 'Snow-CoverFraction-layer', 'Tree-CoverFraction-layer']
+        self.yearlist = ['2015', '2016', '2017', '2018', '2019']
 
-        #self.addParameter(QgsProcessingParameterEnum('prodotto', 'Product', options=self.services, defaultValue=None))
-        #self.addParameter(QgsProcessingParameterEnum('anno', 'Year', options=self.yearlist, defaultValue=None))
-        self.addParameter(QgsProcessingParameterString('anno', 'Year', defaultValue='2015'))
-        self.addParameter(QgsProcessingParameterString('nome_tile', 'Tile Name', defaultValue='W180S40'))
+        self.addParameter(QgsProcessingParameterEnum('prodotto', 'Product', options=self.services, defaultValue=None))
+        self.addParameter(QgsProcessingParameterEnum('anno', 'Year', options=self.yearlist, defaultValue='2015'))
+        #self.addParameter(QgsProcessingParameterString('anno', 'Year', defaultValue=None))
+        #self.addParameter(QgsProcessingParameterString('nome_tile', 'Tile Name', defaultValue='W180S40'))
         self.addParameter(QgsProcessingParameterString('prodotto', 'prodotto', defaultValue='Bare-CoverFraction-layer'))
-        self.addParameter(QgsProcessingParameterFile('Download directory', 'Download directory', behavior=QgsProcessingParameterFile.Folder, optional=True,defaultValue=None))
+        self.addParameter(QgsProcessingParameterFile('Download directory', 'Download directory',
+                                                     behavior=QgsProcessingParameterFile.Folder, optional=True,
+                                                     defaultValue=None))
 
 
 
