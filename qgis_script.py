@@ -95,22 +95,22 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
         self.yearlist = ['2015', '2016', '2017', '2018', '2019']
 
         self.addParameter(QgsProcessingParameterEnum('prodotto', 'Product', options=self.services, defaultValue=None))
-        self.addParameter(QgsProcessingParameterEnum('anno', 'Year', options=self.yearlist, defaultValue='2015'))
+        self.addParameter(QgsProcessingParameterEnum('anno', 'Year', options=self.yearlist, defaultValue=None))
         #self.addParameter(QgsProcessingParameterString('anno', 'Year', defaultValue=None))
-        #self.addParameter(QgsProcessingParameterString('nome_tile', 'Tile Name', defaultValue='W180S40'))
-        self.addParameter(QgsProcessingParameterString('prodotto', 'prodotto', defaultValue='Bare-CoverFraction-layer'))
+        self.addParameter(QgsProcessingParameterString('nome_tile', 'Tile Name', defaultValue='W180S40'))
+        #self.addParameter(QgsProcessingParameterString('prodotto', 'prodotto', defaultValue='Bare-CoverFraction-layer'))
         self.addParameter(QgsProcessingParameterFile('Download directory', 'Download directory',
                                                      behavior=QgsProcessingParameterFile.Folder, optional=True,
                                                      defaultValue=None))
 
 
 
-    def search_Data(self, parameters, context, feedback):
+    def processAlgorithm(self, parameters, context, feedback):
         anno = self.parameterAsSource(parameters, 'anno', context)
         nome_tile = self.parameterAsSource(parameters, 'nome_tile', context)
         prodotto = self.parameterAsSource(parameters, 'prodotto', context)
 
-        list_file = 'C:\\Users\\giano\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\copernicus\\processing\\scriptslist2.txt'
+        list_file = 'C:\\Users\\giano\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\copernicus\\processing\\scripts\\list2.txt'
 
         # read list of files
         f = open(list_file, 'r')
@@ -154,11 +154,8 @@ class ExampleProcessingAlgorithm(QgsProcessingAlgorithm):
 
         return urls
 
-        anno = self.parameterAsSource(parameters, 'anno', context)
-        nome_tile = self.parameterAsSource(parameters, 'nome_tile', context)
-        prodotto = self.parameterAsSource(parameters, 'prodotto', context)
-
-        download = search_Data(prodotto=prodotto, anno=anno, nome_tile=nome_tile)
+        
+        download = processAlgorithm(prodotto=prodotto, anno=anno, nome_tile=nome_tile)
 
         for d in download:
             output = self.services[parameters['Download directory']] + os.path.basename(d)
