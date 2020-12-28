@@ -120,6 +120,7 @@ class LandCoverDownload(QgsProcessingAlgorithm):
         """
         return self.tr("Example algorithm short description")
 
+
     def initAlgorithm(self, config=None):
         self.services = ['Bare-CoverFraction-layer', 'BuiltUp-CoverFraction-layer', 'Crops-CoverFraction-layer',
                          'DataDensityIndicator', 'Discrete-Classification-map', 'Discrete-Classification-proba',
@@ -137,13 +138,15 @@ class LandCoverDownload(QgsProcessingAlgorithm):
                                                      behavior=QgsProcessingParameterFile.Folder, optional=False,
                                                      defaultValue=None))
 
+        self.plugin_dir = os.path.dirname(__file__)
+
     def search_Data(self, anno=None, nome_tile=None, prodotto=None):
-        list_file = './processing/scripts/list2.txt'
-        print('cazzo di percorso', list_file)
+
         # list_file = 'C:\\Users\\giano\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\copernicus\\processing\\scripts\\list2.txt'
         # read list of files
-
+        list_file=os.path.join(self.plugin_dir, 'list2.txt')
         f = open(list_file, 'r')
+        #f = open(os.path.join(self.parent_module.plugin_dir,'list2.txt'), 'r')
         data = f.readlines()
         files = [f.rstrip() for f in data]
         f.close()
