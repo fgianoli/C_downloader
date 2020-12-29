@@ -159,27 +159,27 @@ class LandCoverDownload(QgsProcessingAlgorithm):
             filename = file.split('/')[2]
             year = file.split('/')[0]
             tile = file.split('/')[1]
-            if prodotto is not None and prodotto in file:
-                if anno is not None and anno in file:
-                    if nome_tile is not None and nome_tile in file:
+            if prodotto and prodotto in file:
+                if anno and anno in file:
+                    if nome_tile and nome_tile in file:
                         urls.append(base_URL + year + '/' + tile + '/' + filename)
-                    if nome_tile is None:
+                    if not nome_tile:
                         urls.append(base_URL + year + '/' + tile + '/' + filename)
-                if anno is None:
-                    if nome_tile is not None and nome_tile in file:
+                if not anno:
+                    if nome_tile and nome_tile in file:
                         urls.append(base_URL + year + '/' + tile + '/' + filename)
-                    if nome_tile is None:
+                    if not nome_tile:
                         urls.append(base_URL + year + '/' + tile + '/' + filename)
-            if prodotto is None:
-                if anno is not None and anno in file:
-                    if nome_tile is not None and nome_tile in file:
+            if not prodotto:
+                if anno and anno in file:
+                    if nome_tile and nome_tile in file:
                         urls.append(base_URL + year + '/' + tile + '/' + filename)
-                    if nome_tile is None:
+                    if not nome_tile:
                         urls.append(base_URL + year + '/' + tile + '/' + filename)
-                if anno is None:
-                    if nome_tile is not None and nome_tile in file:
+                if not anno:
+                    if nome_tile and nome_tile in file:
                         urls.append(base_URL + year + '/' + tile + '/' + filename)
-                    if nome_tile is None:
+                    if not nome_tile:
                         urls.append(base_URL + year + '/' + tile + '/' + filename)
 
         # for u in urls:
