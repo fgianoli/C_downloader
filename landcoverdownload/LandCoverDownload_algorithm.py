@@ -203,6 +203,10 @@ class LandCoverDownload(QgsProcessingAlgorithm):
                 "OUTPUT": output
             }
             output= processing.run('native:filedownloader', alg_params, context=context, feedback=None, is_child_algorithm=True)
+            feedback.pushInfo(os.path.basename(d))
+            if feedback.isCanceled():
+                feedback.pushInfo("Terminated by user")
+                return {}
 
         return {}
 
