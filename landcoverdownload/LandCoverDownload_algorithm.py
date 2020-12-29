@@ -198,7 +198,11 @@ class LandCoverDownload(QgsProcessingAlgorithm):
         for d in url_to_download_list:
             # output = self.parameterAsFile(parameters,'Download directory',context) + os.path.basename(d)
             output = parameters['Download directory'] + '/' + os.path.basename(d)
-            urllib.request.urlretrieve(d, output)
+            alg_params = {
+                "URL": d,
+                "OUTPUT": output
+            }
+            output= processing.run('native:filedownloader', alg_params, context=context, feedback=None, is_child_algorithm=True)
 
         return {}
 
