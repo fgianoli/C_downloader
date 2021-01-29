@@ -45,20 +45,24 @@ __revision__ = '$Format:%H$'
 
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.core import (QgsProcessing,
-                       QgsFeatureSink,
+                       QgsProject,
                        QgsProcessingException,
                        QgsProcessingAlgorithm,
-                       QgsProcessingParameterFeatureSource,
-                       QgsProcessingParameterFeatureSink,
+                       QgsProcessingParameterExtent,
+                       QgsProcessingParameterFile,
+                       QgsProcessingParameterEnum,
+                       QgsProcessingParameterString,
                        QgsApplication)
 from qgis import processing
 import os
 import sys
 import urllib.request
-from qgis.core import QgsProcessingParameterFile
-from qgis.core import QgsProcessingParameterEnum
-from qgis.core import QgsProcessingParameterString
+import boto3
+import botocore
+import re
 
+SELECTION = "v3.0.1"
+BUCKET = 'vito.landcover.global'
 
 class LandCoverDownload(QgsProcessingAlgorithm):
 
@@ -120,90 +124,109 @@ class LandCoverDownload(QgsProcessingAlgorithm):
         """
         return self.tr("Example algorithm short description")
 
+    s3objects = []
+    products = []
+    tiles = []
+    years = []
 
     def initAlgorithm(self, config=None):
-        self.services = ['Bare-CoverFraction-layer', 'BuiltUp-CoverFraction-layer', 'Crops-CoverFraction-layer',
-                         'DataDensityIndicator', 'Discrete-Classification-map', 'Discrete-Classification-proba',
-                         'Forest-Type-layer', 'Grass-CoverFraction-layer', 'MossLichen-CoverFraction-layer',
-                         'PermanentWater-CoverFraction-layer', 'SeasonalWater-CoverFraction-layer',
-                         'Shrub-CoverFraction-layer', 'Snow-CoverFraction-layer', 'Tree-CoverFraction-layer']
-        self.yearlist = ['2015', '2016', '2017', '2018', '2019']
+        self.s3client = boto3.client('s3', region_name='eu-central-1')
+        self.s3client.meta.events.register('choose-signer.s3.*', botocore.handlers.disable_signing) 
+        if self.s3objects:
+            return
+        #s3bucket = self.s3client.list_objects(Bucket=BUCKET)
+        paginator = self.s3client.get_paginator('list_objects_v2')
+        pages = paginator.paginate(Bucket=BUCKET)
+        for page in pages:
+            #print(page)
+            for item in page["Contents"]:
+                if item["Key"].startswith(SELECTION) and item["Size"] > 0:
+                    key_parts = item["Key"].split("/")
+                    year = key_parts[1]
+                    item["tile"] = key_parts[2]
+                    item["filename"] = key_parts[3]
+                    pre = SELECTION+"_" + year
+                    prod = re.search(pre + r'-(.*?)_EPSG-4326.tif', item["filename"]).group(1)
+                    cat = prod.split("_")[0]
+                    item["product"] = "_".join(prod.split("_")[1:])
+                    item["year"] = key_parts[1] + "_" + cat
+                    if not item["year"] in self.years:
+                        self.years.append(item["year"])
+                    if not item["tile"] in self.tiles:
+                        self.tiles.append(item["tile"])
+                    if not item["product"] in self.products:
+                        self.products.append(item["product"])
 
-        self.addParameter(QgsProcessingParameterEnum('prodotto', 'Product', options=self.services, defaultValue=None))
-        self.addParameter(QgsProcessingParameterEnum('anno', 'Year', options=self.yearlist, defaultValue=None))
-        # self.addParameter(QgsProcessingParameterString('anno', 'Year', defaultValue=None))
-        self.addParameter(QgsProcessingParameterString('nome_tile', 'Tile Name', defaultValue=None, optional=True))
-        # self.addParameter(QgsProcessingParameterString('prodotto', 'prodotto', defaultValue='Bare-CoverFraction-layer'))
+                    #print (item["filename"])
+                    self.s3objects.append(item)
+
+        self.products.sort()
+        self.years.sort()
+        self.tiles.sort()
+
+        self.addParameter(QgsProcessingParameterEnum('prodotto', 'Product', options=self.products, defaultValue=None))
+        self.addParameter(QgsProcessingParameterEnum('anno', 'Year', options=self.years, defaultValue=None, optional=True))
+        #self.addParameter(QgsProcessingParameterEnum('nome_tile', 'Tile Name', options=self.tiles, defaultValue=None))
+        self.addParameter(QgsProcessingParameterExtent('estensione', 'Extent', defaultValue=None))
         self.addParameter(QgsProcessingParameterFile('Download directory', 'Download directory',
                                                      behavior=QgsProcessingParameterFile.Folder, optional=False,
                                                      defaultValue=None))
 
-        self.plugin_dir = os.path.dirname(__file__)
 
-    def search_Data(self, anno=None, nome_tile=None, prodotto=None):
-
-        # list_file = 'C:\\Users\\giano\\AppData\\Roaming\\QGIS\\QGIS3\\profiles\\copernicus\\processing\\scripts\\list2.txt'
-        # read list of files
-        list_file=os.path.join(self.plugin_dir, 'list2.txt')
-        f = open(list_file, 'r')
-        #f = open(os.path.join(self.parent_module.plugin_dir,'list2.txt'), 'r')
-        data = f.readlines()
-        files = [f.rstrip() for f in data]
-        f.close()
-
-        base_URL = 'https://s3-eu-west-1.amazonaws.com/vito.landcover.global/v3.0.1/'
-
-        urls = []
-
-        for file in files:
-            filename = file.split('/')[2]
-            year = file.split('/')[0]
-            tile = file.split('/')[1]
-            if prodotto and prodotto in file:
-                if anno and anno in file:
-                    if nome_tile and nome_tile in file:
-                        urls.append(base_URL + year + '/' + tile + '/' + filename)
-                    if not nome_tile:
-                        urls.append(base_URL + year + '/' + tile + '/' + filename)
-                if not anno:
-                    if nome_tile and nome_tile in file:
-                        urls.append(base_URL + year + '/' + tile + '/' + filename)
-                    if not nome_tile:
-                        urls.append(base_URL + year + '/' + tile + '/' + filename)
-            if not prodotto:
-                if anno and anno in file:
-                    if nome_tile and nome_tile in file:
-                        urls.append(base_URL + year + '/' + tile + '/' + filename)
-                    if not nome_tile:
-                        urls.append(base_URL + year + '/' + tile + '/' + filename)
-                if not anno:
-                    if nome_tile and nome_tile in file:
-                        urls.append(base_URL + year + '/' + tile + '/' + filename)
-                    if not nome_tile:
-                        urls.append(base_URL + year + '/' + tile + '/' + filename)
-
-        # for u in urls:
-        # print(u)
-
-        return urls
+    def search_data(self, anno, selezione_tile, prodotto):
+        filtered_objects = self.s3objects
+        if prodotto:
+            filtered_objects = list(filter(lambda item: item['product'] == prodotto, filtered_objects))
+        if anno:
+            filtered_objects = list(filter(lambda item: item['year'] == anno, filtered_objects))
+        if selezione_tile:
+            filtered_objects = list(filter(lambda item: item['tile'] in selezione_tile, filtered_objects))
+        return filtered_objects
+        
 
     def processAlgorithm(self, parameters, context, feedback):
-        anno = self.yearlist[parameters['anno']]
-        # nome_tile = self.parameterAsString(parameters, 'nome_tile', context)
-        nome_tile = parameters['nome_tile']
-        prodotto = self.services[parameters['prodotto']]
+        anno = self.years[parameters['anno']] if parameters['anno'] else None
+        #nome_tile = self.tiles[parameters['nome_tile']] if parameters['nome_tile'] else None
+        prodotto = self.products[parameters['prodotto']] if parameters['prodotto'] else None
+        estensione = parameters['estensione']
+        tiles_selection = []
+        if estensione:
+            grid_params = {
+                "TYPE": 2,
+                "EXTENT": "-180,180,-80,80",
+                "HSPACING": 20,
+                "VSPACING": 20,
+                "CRS": "EPSG:4326",
+                "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT
+            }
+            output1 = processing.run('native:creategrid', grid_params, context=context, feedback=None, is_child_algorithm=True)
+            grid_layer = output1["OUTPUT"]
+            select_params = {
+                "INPUT": grid_layer,
+                "EXTENT": estensione,
+                "OUTPUT": QgsProcessing.TEMPORARY_OUTPUT
+            }
+            output2 = processing.run('native:extractbyextent', select_params, context=context, feedback=None, is_child_algorithm=True)
+            grids_selected_layer = context.takeResultLayer(output2["OUTPUT"])
+            print (grid_layer, grids_selected_layer)
+            for feat in grids_selected_layer.getFeatures():
+                lon = int(feat["left"])
+                lat = int(feat["top"])
+                lon_prefix = "E" if lon >= 0 else "W"
+                lat_prefix = "N" if lat >= 0 else "S"
+                tile_code = lon_prefix + str(abs(lon)).zfill(3) + lat_prefix + str(abs(lat)).zfill(2)
+                tiles_selection.append(tile_code)
 
-        url_to_download_list = self.search_Data(anno=anno, nome_tile=nome_tile, prodotto=prodotto)
+        url_to_download_list = self.search_data(anno, tiles_selection, prodotto)
+
+        print(url_to_download_list)
 
         for d in url_to_download_list:
             # output = self.parameterAsFile(parameters,'Download directory',context) + os.path.basename(d)
-            output = parameters['Download directory'] + '/' + os.path.basename(d)
-            alg_params = {
-                "URL": d,
-                "OUTPUT": output
-            }
-            output= processing.run('native:filedownloader', alg_params, context=context, feedback=None, is_child_algorithm=True)
-            feedback.pushInfo(os.path.basename(d))
+            output = parameters['Download directory'] + '/' + d["filename"]
+            self.s3client.download_file(BUCKET, d["Key"], output)
+
+            feedback.pushInfo(d["filename"])
             if feedback.isCanceled():
                 feedback.pushInfo("Terminated by user")
                 return {}
