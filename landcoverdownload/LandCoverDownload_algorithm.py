@@ -104,7 +104,7 @@ class LandCoverDownload(QgsProcessingAlgorithm):
         Returns the name of the group this algorithm belongs to. This string
         should be localised.
         """
-        return self.tr('Copernicus Global Land Tools')
+        return self.tr('Copernicus Products Downloader')
 
     def groupId(self):
         """
@@ -114,7 +114,7 @@ class LandCoverDownload(QgsProcessingAlgorithm):
         contain lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'Copernicus Global Land Tools'
+        return 'Copernicus Products Downloader'
 
     def shortHelpString(self):
         """
@@ -122,7 +122,10 @@ class LandCoverDownload(QgsProcessingAlgorithm):
         should provide a basic description about what the algorithm does and the
         parameters and outputs associated with it..
         """
-        return self.tr("Example algorithm short description")
+        return self.tr("""This tool allows to download the Copernicus Land Cover. <br>"""
+                       """<b>Product:</b> it is possible to select the Land Cover product to download. If the choosen product is 'None', al the products will be downloaded. <br>""" \
+                       """<b>Year:</b> allows to select the year of reference for the Land Cover. If the choosen year is 'None', all the years will be downloaded. <br>""" \
+                       """<b>Tile:</b> it is possible to select a specif Tile to download. <br>To choose the tile <a href="https://github.com/fgianoli/CopernicusGlobalLand/blob/master/landcoverdownload/tile/tile.JPG?raw=true">Click here</a>, if the Tile is set to 'None', all the tiles will be downloaded""")
 
     s3objects = []
     products = []
