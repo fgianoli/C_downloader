@@ -43,7 +43,7 @@ __revision__ = '$Format:%H$'
 ***************************************************************************
 """
 
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication, QSettings
 from qgis.core import (QgsProcessing,
                        QgsProject,
                        QgsProcessingException,
@@ -133,7 +133,27 @@ class LandCoverDownload(QgsProcessingAlgorithm):
     years = []
 
     def initAlgorithm(self, config=None):
-        self.s3client = boto3.client('s3', region_name='eu-central-1')
+
+        def getProxiesConf():
+            s = QSettings()  # getting proxy from qgis options settings
+            proxyEnabled = s.value("proxy/proxyEnabled", "")
+            proxyType = s.value("proxy/proxyType", "")
+            proxyHost = s.value("proxy/proxyHost", "")
+            proxyPort = s.value("proxy/proxyPort", "")
+            proxyUser = s.value("proxy/proxyUser", "")
+            proxyPassword = s.value("proxy/proxyPassword", "")
+            if proxyEnabled == "true" and proxyType == 'HttpProxy':  # test if there are proxy settings
+                proxyDict = {
+                    "http": "%s:%s@%s:%s" % (proxyUser, proxyPassword, proxyHost, proxyPort),
+                    "https": "%s:%s@%s:%s" % (proxyUser, proxyPassword, proxyHost, proxyPort)
+                    #"http": "%s:%s" % (proxyHost, proxyPort),
+                    #"https": "%s:%s" % (proxyHost, proxyPort)
+                }
+                return proxyDict
+            else:
+                return None
+                
+        self.s3client = boto3.client('s3', region_name='eu-central-1', config=botocore.config.Config(proxies=getProxiesConf(), signature_version=botocore.UNSIGNED))
         self.s3client.meta.events.register('choose-signer.s3.*', botocore.handlers.disable_signing) 
         if self.s3objects:
             return
