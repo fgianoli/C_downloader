@@ -104,7 +104,7 @@ class LandCoverDownload(QgsProcessingAlgorithm):
         Returns the name of the group this algorithm belongs to. This string
         should be localised.
         """
-        return self.tr('Copernicus Products Downloader')
+        return self.tr('Copernicus Global Land Tools')
 
     def groupId(self):
         """
@@ -114,7 +114,7 @@ class LandCoverDownload(QgsProcessingAlgorithm):
         contain lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'Copernicus Products Downloader'
+        return 'Copernicus Global Land Tools'
 
     def shortHelpString(self):
         """
@@ -122,10 +122,7 @@ class LandCoverDownload(QgsProcessingAlgorithm):
         should provide a basic description about what the algorithm does and the
         parameters and outputs associated with it..
         """
-        return self.tr("""This tool allows to download the Copernicus Land Cover. <br>"""
-                       """<b>Product:</b> it is possible to select the Land Cover product to download. If the choosen product is 'None', al the products will be downloaded. <br>""" \
-                       """<b>Year:</b> allows to select the year of reference for the Land Cover. If the choosen year is 'None', all the years will be downloaded. <br>""" \
-                       """<b>Tile:</b> it is possible to select a specif Tile to download. <br>To choose the tile <a href="https://github.com/fgianoli/CopernicusGlobalLand/blob/master/landcoverdownload/tile/tile.JPG?raw=true">Click here</a>, if the Tile is set to 'None', all the tiles will be downloaded""")
+        return self.tr("Example algorithm short description")
 
     s3objects = []
     products = []
@@ -146,8 +143,6 @@ class LandCoverDownload(QgsProcessingAlgorithm):
                 proxyDict = {
                     "http": "%s:%s@%s:%s" % (proxyUser, proxyPassword, proxyHost, proxyPort),
                     "https": "%s:%s@%s:%s" % (proxyUser, proxyPassword, proxyHost, proxyPort)
-                    #"http": "%s:%s" % (proxyHost, proxyPort),
-                    #"https": "%s:%s" % (proxyHost, proxyPort)
                 }
                 return proxyDict
             else:
@@ -157,7 +152,6 @@ class LandCoverDownload(QgsProcessingAlgorithm):
         self.s3client.meta.events.register('choose-signer.s3.*', botocore.handlers.disable_signing) 
         if self.s3objects:
             return
-        #s3bucket = self.s3client.list_objects(Bucket=BUCKET)
         paginator = self.s3client.get_paginator('list_objects_v2')
         pages = paginator.paginate(Bucket=BUCKET)
         for page in pages:
@@ -187,30 +181,28 @@ class LandCoverDownload(QgsProcessingAlgorithm):
         self.years.sort()
         self.tiles.sort()
 
-        self.addParameter(QgsProcessingParameterEnum('prodotto', 'Product', options=self.products, defaultValue=None))
-        self.addParameter(QgsProcessingParameterEnum('anno', 'Year', options=self.years, defaultValue=None, optional=True))
-        #self.addParameter(QgsProcessingParameterEnum('nome_tile', 'Tile Name', options=self.tiles, defaultValue=None))
-        self.addParameter(QgsProcessingParameterExtent('estensione', 'Extent', defaultValue=None))
+        self.addParameter(QgsProcessingParameterEnum('prodotto', 'Product', options=self.products, defaultValue=None, allowMultiple=True))
+        self.addParameter(QgsProcessingParameterEnum('anno', 'Year', options=self.years, defaultValue=None, allowMultiple=True))
+        self.addParameter(QgsProcessingParameterExtent('estensione', 'Extent', defaultValue=None, optional=True))
         self.addParameter(QgsProcessingParameterFile('Download directory', 'Download directory',
                                                      behavior=QgsProcessingParameterFile.Folder, optional=False,
                                                      defaultValue=None))
 
 
-    def search_data(self, anno, selezione_tile, prodotto):
+    def search_data(self, selezione_anni, selezione_tile, selezione_prodotti):
         filtered_objects = self.s3objects
-        if prodotto:
-            filtered_objects = list(filter(lambda item: item['product'] == prodotto, filtered_objects))
-        if anno:
-            filtered_objects = list(filter(lambda item: item['year'] == anno, filtered_objects))
+        if selezione_prodotti:
+            filtered_objects = list(filter(lambda item: item['product'] in selezione_prodotti, filtered_objects))
+        if selezione_anni:
+            filtered_objects = list(filter(lambda item: item['year'] in selezione_anni, filtered_objects))
         if selezione_tile:
             filtered_objects = list(filter(lambda item: item['tile'] in selezione_tile, filtered_objects))
         return filtered_objects
         
 
     def processAlgorithm(self, parameters, context, feedback):
-        anno = self.years[parameters['anno']] if parameters['anno'] else None
-        #nome_tile = self.tiles[parameters['nome_tile']] if parameters['nome_tile'] else None
-        prodotto = self.products[parameters['prodotto']] if parameters['prodotto'] else None
+        anni = [self.years[id_anno] for id_anno in parameters['anno']]
+        prodotti = [self.products[id_prod] for id_prod in parameters['prodotto']]
         estensione = parameters['estensione']
         tiles_selection = []
         if estensione:
@@ -240,7 +232,7 @@ class LandCoverDownload(QgsProcessingAlgorithm):
                 tile_code = lon_prefix + str(abs(lon)).zfill(3) + lat_prefix + str(abs(lat)).zfill(2)
                 tiles_selection.append(tile_code)
 
-        url_to_download_list = self.search_data(anno, tiles_selection, prodotto)
+        url_to_download_list = self.search_data(anni, tiles_selection, prodotti)
 
         print(url_to_download_list)
 
@@ -255,5 +247,3 @@ class LandCoverDownload(QgsProcessingAlgorithm):
                 return {}
 
         return {}
-
-
